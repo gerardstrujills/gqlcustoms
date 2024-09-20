@@ -15,3 +15,12 @@ export class EntryInput {
   @Field(() => Date)
   startTime: Date;
 }
+@InputType()
+export class EntryUpdateInput {
+  @Field(() => Number)
+  quantity: number;
+  @Field(() => Float)
+  price: number;
+  @Field(() => Date)
+  startTime: Date;
+}

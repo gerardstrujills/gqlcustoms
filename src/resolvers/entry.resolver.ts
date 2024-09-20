@@ -1,7 +1,7 @@
 import { Supplier } from "../schemas/supplier";
-import { EntryInput } from "../res/entry";
+import { EntryInput, EntryUpdateInput } from "../res/entry";
 import { Entry } from "../schemas/entry";
-import { validateEntry } from "../validator/entry";
+import { validateEntry, validateUpdateEntry } from "../validator/entry";
 import {
   Arg,
   Field,
@@ -63,7 +63,7 @@ export class EntryResolver {
           errors: [
             {
               field: "ruc",
-              message: "Ruc no existente..",
+              message: "Ruc no existente",
             },
           ],
         };
@@ -95,14 +95,39 @@ export class EntryResolver {
         };
       }
 
-      const entry = Entry.create({
+      const create = Entry.create({
         productId: input.productId,
         supplierId: supplier.id,
         price: input.price,
         quantity: input.quantity,
         startTime: input.startTime,
       });
-      await entry.save();
+
+      await create.save();
+
+      const entry: Entry | undefined = await Entry.createQueryBuilder("s")
+        .select([
+          `"s"."id" as id`,
+          `"s"."quantity" as quantity`,
+          `"s"."price" as price`,
+          `CAST(s.startTime as TIMESTAMP) as "startTime"`,
+          `CAST(s.createdAt as TIMESTAMP) as "createdAt"`,
+          `CAST(s.updatedAt as TIMESTAMP) as "updatedAt"`,
+          `JSON_BUILD_OBJECT(
+             'id', p.id,
+             'name', p.name,
+             'ruc', COALESCE(p.ruc, null),
+             'district', COALESCE(p.district, null),
+             'province', COALESCE(p.province, null),
+             'department', COALESCE(p.department, null),
+             'productCount', (SELECT COUNT(*) FROM entry e WHERE e."supplierId" = p.id),
+             'createdAt', TO_CHAR(p."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+             'updatedAt', TO_CHAR(p."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+         ) AS "supplier"`,
+        ])
+        .leftJoin(Supplier, "p", `p.id = s."supplierId"`)
+        .where("s.id = :id", { id: create.id })
+        .getRawOne();
 
       return { entry };
     } catch (e) {
@@ -120,10 +145,10 @@ export class EntryResolver {
 
   @Mutation(() => EntryResponse)
   async updateEntry(
-    @Arg("id") id: number,
-    @Arg("input") input: EntryInput
+    @Arg("id", () => Int) id: number,
+    @Arg("input") input: EntryUpdateInput
   ): Promise<EntryResponse> {
-    const errors = validateEntry(input);
+    const errors = validateUpdateEntry(input);
 
     if (errors) {
       return { errors };
@@ -142,38 +167,34 @@ export class EntryResolver {
         };
       }
 
-      const duplicateEntry = await Entry.createQueryBuilder("e")
-        .where(
-          `"e"."productId" = :productId AND "e"."supplierId" = :supplierId AND quantity = :quantity AND "e"."price" = :price AND "e"."startTime" = :startTime AND "e"."id" != :id`,
-          {
-            productId: input.startTime,
-            supplierId: input.startTime,
-            quantity: input.startTime,
-            price: input.startTime,
-            startTime: input.startTime,
-            id,
-          }
-        )
-        // .where(`"p"."id" != :id`, {
-        //   id,
-        // })
-        .getOne();
-
-      if (duplicateEntry) {
-        return {
-          errors: [
-            {
-              field: "title",
-              message: "Producto entrada se ha creado anteriormente",
-            },
-          ],
-        };
-      }
-
       Object.assign(existing, input);
       await existing.save();
 
-      return { entry: existing };
+      const entry: Entry | undefined = await Entry.createQueryBuilder("s")
+        .select([
+          `"s"."id" as id`,
+          `"s"."quantity" as quantity`,
+          `"s"."price" as price`,
+          `CAST(s.startTime as TIMESTAMP) as "startTime"`,
+          `CAST(s.createdAt as TIMESTAMP) as "createdAt"`,
+          `CAST(s.updatedAt as TIMESTAMP) as "updatedAt"`,
+          `JSON_BUILD_OBJECT(
+           'id', p.id,
+           'name', p.name,
+           'ruc', COALESCE(p.ruc, null),
+           'district', COALESCE(p.district, null),
+           'province', COALESCE(p.province, null),
+           'department', COALESCE(p.department, null),
+           'productCount', (SELECT COUNT(*) FROM entry e WHERE e."supplierId" = p.id),
+           'createdAt', TO_CHAR(p."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+           'updatedAt', TO_CHAR(p."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+       ) AS "supplier"`,
+        ])
+        .leftJoin(Supplier, "p", `p.id = s."supplierId"`)
+        .where("s.id = :id", { id })
+        .getRawOne();
+
+      return { entry };
     } catch (e) {
       console.log(e);
       return {
