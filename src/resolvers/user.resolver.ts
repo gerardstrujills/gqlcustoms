@@ -7,13 +7,10 @@ import {
   ObjectType,
   Query,
 } from "type-graphql";
-import argon2 from "argon2";
+
 import { User } from "../schemas/user";
 import { MyCtx } from "../types";
 import { COOKIE_NAME } from "../constants";
-import { UsernamePasswordInput } from "../res/user";
-import { validateRegister } from "../validator/user";
-import { AppDataSource } from "../config";
 
 @ObjectType()
 class FieldError {
@@ -44,47 +41,6 @@ export class UserResolver {
   }
 
   @Mutation(() => UserResponse)
-  async register(
-    @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { req }: MyCtx
-  ): Promise<UserResponse> {
-    const errors = validateRegister(options);
-    if (errors) {
-      return { errors };
-    }
-
-    const hashedPassword = await argon2.hash(options.password);
-    let user;
-    try {
-      const result = await AppDataSource.createQueryBuilder()
-        .insert()
-        .into(User)
-        .values({
-          username: options.username,
-          email: options.email,
-          password: hashedPassword,
-        })
-        .returning("*")
-        .execute();
-      user = result.raw[0];
-    } catch (err) {
-      if (err.code === "23505") {
-        return {
-          errors: [
-            {
-              field: "username",
-              message: "Usuario existente. Intentalo nuevamente",
-            },
-          ],
-        };
-      }
-    }
-    req.session.userId = user.id;
-
-    return { user };
-  }
-
-  @Mutation(() => UserResponse)
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
@@ -105,8 +61,8 @@ export class UserResolver {
         ],
       };
     }
-    const valid = await argon2.verify(user.password, password);
-    if (!valid) {
+    
+    if (user.password !== password) {
       return {
         errors: [
           {

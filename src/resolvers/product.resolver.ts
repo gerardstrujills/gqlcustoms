@@ -1,5 +1,4 @@
 import { ProductInput } from "../res/product";
-import { AppDataSource } from "../config";
 import { Product } from "../schemas/product";
 import {
   Arg,
@@ -9,8 +8,10 @@ import {
   ObjectType,
   Query,
   Resolver,
+  UseMiddleware,
 } from "type-graphql";
 import { validateProduct } from "../validator/product";
+import { isAuth } from "../middleware/isAuth";
 
 @ObjectType()
 class ProductFieldError {
@@ -33,6 +34,7 @@ class ProductResponse {
 @Resolver(Product)
 export class ProductResolver {
   @Query(() => [Product], { nullable: true })
+  @UseMiddleware(isAuth)
   async products(): Promise<Product[] | null> {
     try {
       const product = await Product.createQueryBuilder("s")
@@ -101,13 +103,8 @@ export class ProductResolver {
       return { errors };
     }
 
-    const queryRunner = AppDataSource.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
-      const query = await queryRunner.manager
+      const query = await Product.createQueryBuilder("p")
         .createQueryBuilder()
         .select("*")
         .from(Product, "p")
@@ -126,7 +123,6 @@ export class ProductResolver {
         .getRawOne();
 
       if (query) {
-        await queryRunner.commitTransaction();
         return {
           errors: [
             {
@@ -145,12 +141,9 @@ export class ProductResolver {
       });
       await product.save();
 
-      await queryRunner.commitTransaction();
-
       return { product };
     } catch (e) {
       console.log(e);
-      await queryRunner.rollbackTransaction();
       return {
         errors: [
           {
@@ -159,8 +152,6 @@ export class ProductResolver {
           },
         ],
       };
-    } finally {
-      await queryRunner.release();
     }
   }
 
@@ -175,11 +166,6 @@ export class ProductResolver {
       return { errors };
     }
 
-    const queryRunner = AppDataSource.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
       const existingProduct = await Product.findOne({ where: { id } });
       if (!existingProduct) {
@@ -193,8 +179,7 @@ export class ProductResolver {
         };
       }
 
-      const duplicateProduct = await queryRunner.manager
-        .createQueryBuilder(Product, "p")
+      const duplicateProduct = await Product.createQueryBuilder("p")
         .where(
           `"p"."title" = :title AND "p"."unitOfMeasurement" = :unitOfMeasurement AND "p"."materialType" = :materialType AND "p"."id" != :id`,
           {
@@ -207,7 +192,6 @@ export class ProductResolver {
         .getOne();
 
       if (duplicateProduct) {
-        await queryRunner.rollbackTransaction();
         return {
           errors: [
             {
@@ -221,11 +205,9 @@ export class ProductResolver {
       Object.assign(existingProduct, input);
       await existingProduct.save();
 
-      await queryRunner.commitTransaction();
       return { product: existingProduct };
     } catch (e) {
       console.log(e);
-      await queryRunner.rollbackTransaction();
       return {
         errors: [
           {
@@ -234,8 +216,6 @@ export class ProductResolver {
           },
         ],
       };
-    } finally {
-      await queryRunner.release();
     }
   }
 

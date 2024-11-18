@@ -1,5 +1,4 @@
 import axios, { AxiosError } from "axios";
-import { AppDataSource } from "../config";
 import { SupplierInput, SupplierRuc } from "../res/supplier";
 import { Supplier } from "../schemas/supplier";
 import { validateSupplier } from "../validator/supplier";
@@ -11,7 +10,9 @@ import {
   ObjectType,
   Query,
   Resolver,
+  UseMiddleware,
 } from "type-graphql";
+import { isAuth } from "../middleware/isAuth";
 
 @ObjectType()
 class SupplierFieldError {
@@ -34,6 +35,7 @@ class SupplierResponse {
 @Resolver(Supplier)
 export class SupplierResolver {
   @Query(() => [Supplier], { nullable: true })
+  @UseMiddleware(isAuth)
   async suppliers(): Promise<Supplier[] | null> {
     try {
       const suppliers = await Supplier.createQueryBuilder("s")
@@ -60,6 +62,7 @@ export class SupplierResolver {
   }
 
   @Query(() => Supplier, { nullable: true })
+  @UseMiddleware(isAuth)
   async supplier(@Arg("id", () => Int) id: number): Promise<Supplier | null> {
     try {
       const result: Supplier | undefined = await Supplier.createQueryBuilder(
@@ -236,14 +239,8 @@ export class SupplierResolver {
       return { errors };
     }
 
-    const queryRunner = AppDataSource.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
-      const existing = await queryRunner.manager
-        .createQueryBuilder()
+      const existing = await Supplier.createQueryBuilder()
         .select("*")
         .from(Supplier, "c")
         .where("c.name ILIKE :name", { name: input.name })
@@ -253,7 +250,6 @@ export class SupplierResolver {
         .getRawOne();
 
       if (existing instanceof Object && "id" in existing) {
-        await queryRunner.commitTransaction();
         return {
           errors: [
             {
@@ -274,12 +270,9 @@ export class SupplierResolver {
 
       await supplier.save();
 
-      await queryRunner.commitTransaction();
-
       return { supplier };
     } catch (e) {
       console.log("...", e);
-      await queryRunner.rollbackTransaction();
       return {
         errors: [
           {
@@ -288,8 +281,6 @@ export class SupplierResolver {
           },
         ],
       };
-    } finally {
-      await queryRunner.release();
     }
   }
 
