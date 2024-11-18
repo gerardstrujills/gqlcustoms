@@ -46,42 +46,52 @@ export class ProductResolver {
           `"s"."materialType" as "materialType"`,
           `CAST(s.createdAt as TIMESTAMP) as "createdAt"`,
           `CAST(s.updatedAt as TIMESTAMP) as "updatedAt"`,
-          `(SELECT COALESCE(
-          JSON_AGG(
-            JSON_BUILD_OBJECT(
-              'id', e.id,
-              'quantity', e.quantity,
-              'price', e.price,
-              'startTime', TO_CHAR(e."startTime", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-              'createdAt', TO_CHAR(e."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-              'updatedAt', TO_CHAR(e."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-              'supplier', JSON_BUILD_OBJECT(
-                'id', p.id,
-                'name', p.name,
-                'ruc', COALESCE(p.ruc, null),
-                'address', COALESCE(p.address, null),
-                'district', COALESCE(p.district, null),
-                'province', COALESCE(p.province, null),
-                'department', COALESCE(p.department, null),
-                'productCount', (SELECT COUNT(*) FROM entry e WHERE e."supplierId" = p.id),
-                'createdAt', TO_CHAR(p."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-                'updatedAt', TO_CHAR(p."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-              )
-            )
-          ), '[]'
-        ) FROM entry e LEFT JOIN supplier p ON e."supplierId"=p.id WHERE e."productId" = s.id) AS "entry"`,
-          `(SELECT COALESCE(
-          JSON_AGG(
-            JSON_BUILD_OBJECT(
-              'id', w.id,
-              'title', COALESCE(w.title, null),
-              'quantity', w.quantity,
-              'endTime', TO_CHAR(w."endTime", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-              'createdAt', TO_CHAR(w."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
-              'updatedAt', TO_CHAR(w."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-            )
-          ), '[]'
-        ) FROM withdrawal w WHERE w."productId" = s.id) AS "withdrawal"`,
+          `(
+            SELECT COALESCE(
+              JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'id', e.id,
+                  'quantity', e.quantity - COALESCE((
+                    SELECT SUM(w.quantity)
+                    FROM withdrawal w
+                    WHERE w."productId" = e."productId"
+                  ), 0),
+                  'price', e.price,
+                  'startTime', TO_CHAR(e."startTime", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                  'createdAt', TO_CHAR(e."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                  'updatedAt', TO_CHAR(e."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                  'supplier', JSON_BUILD_OBJECT(
+                    'id', p.id,
+                    'name', p.name,
+                    'ruc', COALESCE(p.ruc, null),
+                    'address', COALESCE(p.address, null),
+                    'district', COALESCE(p.district, null),
+                    'province', COALESCE(p.province, null),
+                    'department', COALESCE(p.department, null),
+                    'productCount', (SELECT COUNT(*) FROM entry e WHERE e."supplierId" = p.id),
+                    'createdAt', TO_CHAR(p."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                    'updatedAt', TO_CHAR(p."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                  )
+                )
+              ), '[]'
+            ) FROM entry e
+            LEFT JOIN supplier p ON e."supplierId" = p.id
+            WHERE e."productId" = s.id
+          ) AS "entry"`,
+          `(
+            SELECT COALESCE(
+              JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'id', w.id,
+                  'title', COALESCE(w.title, null),
+                  'quantity', w.quantity,
+                  'endTime', TO_CHAR(w."endTime", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                  'createdAt', TO_CHAR(w."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                  'updatedAt', TO_CHAR(w."updatedAt", 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                )
+              ), '[]'
+            ) FROM withdrawal w WHERE w."productId" = s.id
+          ) AS "withdrawal"`,
         ])
         .groupBy("s.id")
         .orderBy("s.id", "DESC")
