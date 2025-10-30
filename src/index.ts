@@ -41,11 +41,12 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: "lax",
-        secure: false,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        secure: process.env.NODE_ENV === "production",
+        domain: process.env.NODE_ENV === "production" ? ".catunta.netlify.app" : undefined,
       },
       saveUninitialized: false,
-      secret: "pass",
+      secret: "pass", // ← ¡MEJORA ESTO!
       resave: false,
     })
   );
