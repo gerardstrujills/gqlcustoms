@@ -28,13 +28,13 @@ const main = async () => {
     password: '5SSp6uL3U1I6sTyawOCxg63CxmBWvuJo',
   });
 
-  // Verificar conexión a Redis
+  // Verificar conexión Redis
   redis.on('connect', () => console.log('✅ Conectado a Redis'));
   redis.on('error', (err) => console.log('❌ Error Redis:', err));
 
   app.set("trust proxy", 1);
   
-  // Middleware CORS explícito
+  // CORS mejorado
   app.use(cors({
     origin: "https://catunta.netlify.app",
     credentials: true,
@@ -42,7 +42,15 @@ const main = async () => {
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   }));
 
-  // Configuración de sesión mejorada
+  // Middleware para debug
+  app.use((req, res, next) => {
+    console.log('🔍 Headers recibidos:', req.headers.origin);
+    console.log('🍪 Cookies recibidas:', req.headers.cookie);
+    console.log('📝 Método:', req.method);
+    next();
+  });
+
+  // Configuración de sesión FIX para producción
   app.use(
     session({
       name: COOKIE_NAME,
@@ -52,11 +60,11 @@ const main = async () => {
         disableTouch: true,
       }),
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 años
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: "none", // ← SIEMPRE "none" en producción
-        secure: true, // ← SIEMPRE true en producción
-        // domain: "catunta.netlify.app" // ← Prueba sin esto primero
+        sameSite: "none", // ← CRÍTICO para cross-site
+        secure: true,     // ← CRÍTICO para HTTPS
+        // NO uses domain por ahora
       },
       saveUninitialized: false,
       secret: "pass", 
@@ -94,12 +102,12 @@ const main = async () => {
   reniecRoute(app);
   sunatRoute(app);
 
-  // ✅ PUERTO CORRECTO PARA RAILWAY
+  // ✅ PUERTO CORRECTO - Railway asigna puerto dinámico
   const PORT = process.env.PORT || 8080;
   
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => { // ← Añade "0.0.0.0"
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📱 GraphQL: http://localhost:${PORT}/graphql`);
+    console.log(`📱 GraphQL: http://0.0.0.0:${PORT}/graphql`);
   });
 };
 
