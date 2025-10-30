@@ -51,6 +51,7 @@ const main = async () => {
   );
 
   const apolloServer = new ApolloServer({
+    cache: "bounded",
     schema: await buildSchema({
       resolvers: [
         UserResolver,
