@@ -51,6 +51,7 @@ const main = async () => {
   );
 
   const apolloServer = new ApolloServer({
+    cache: new BaseRedisCache({ client: redis }),
     schema: await buildSchema({
       resolvers: [
         UserResolver,

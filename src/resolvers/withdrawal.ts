@@ -37,21 +37,6 @@ export class WithdrawalResolver {
     }
 
     try {
-      // const existingWithdrawal = await Withdrawal.findOne({
-      //   where: { title: input.title },
-      // });
-
-      // if (existingWithdrawal) {
-      //   return {
-      //     errors: [
-      //       {
-      //         field: "title",
-      //         message: "El título ya está en uso. Por favor, elige otro.",
-      //       },
-      //     ],
-      //   };
-      // }
-
       const withdrawal = Withdrawal.create({
         productId: input.productId,
         title: input.title,
