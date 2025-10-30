@@ -8,10 +8,8 @@ import {
   ObjectType,
   Query,
   Resolver,
-  UseMiddleware,
 } from "type-graphql";
 import { validateProduct } from "../validator/product";
-import { isAuth } from "../middleware/isAuth";
 
 @ObjectType()
 class ProductFieldError {
@@ -34,7 +32,6 @@ class ProductResponse {
 @Resolver(Product)
 export class ProductResolver {
   @Query(() => [Product], { nullable: true })
-  @UseMiddleware(isAuth)
   async products(): Promise<Product[] | null> {
     try {
       const product = await Product.createQueryBuilder("s")

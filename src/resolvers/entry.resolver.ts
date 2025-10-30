@@ -10,9 +10,7 @@ import {
   ObjectType,
   Query,
   Resolver,
-  UseMiddleware,
 } from "type-graphql";
-import { isAuth } from "../middleware/isAuth";
 
 @ObjectType()
 class EntryFieldError {
@@ -35,7 +33,6 @@ class EntryResponse {
 @Resolver(Entry)
 export class EntryResolver {
   @Query(() => [Entry], { nullable: true })
-  @UseMiddleware(isAuth)
   async entries(): Promise<Entry[] | null> {
     try {
       const entry = await Entry.find({

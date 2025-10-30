@@ -10,9 +10,7 @@ import {
   ObjectType,
   Query,
   Resolver,
-  UseMiddleware,
 } from "type-graphql";
-import { isAuth } from "../middleware/isAuth";
 
 @ObjectType()
 class SupplierFieldError {
@@ -35,7 +33,6 @@ class SupplierResponse {
 @Resolver(Supplier)
 export class SupplierResolver {
   @Query(() => [Supplier], { nullable: true })
-  @UseMiddleware(isAuth)
   async suppliers(): Promise<Supplier[] | null> {
     try {
       const suppliers = await Supplier.createQueryBuilder("s")
@@ -62,7 +59,6 @@ export class SupplierResolver {
   }
 
   @Query(() => Supplier, { nullable: true })
-  @UseMiddleware(isAuth)
   async supplier(@Arg("id", () => Int) id: number): Promise<Supplier | null> {
     try {
       const result: Supplier | undefined = await Supplier.createQueryBuilder(
