@@ -13,7 +13,6 @@ import { ProductResolver } from "./resolvers/product.resolver";
 import { EntryResolver } from "./resolvers/entry.resolver";
 import { SupplierResolver } from "./resolvers/supplier.resolver";
 import { WithdrawalResolver } from "./resolvers/withdrawal";
-import cors from "cors";
 
 const main = async () => {
   await AppDataSource.initialize();
@@ -23,34 +22,13 @@ const main = async () => {
   const RedisStore = require("connect-redis").default;
 
   const redis = new Redis({
-    host: 'redis-18468.c89.us-east-1-3.ec2.redns.redis-cloud.com',
-    port: 18468,
-    password: "uEZIYvAuLLOdZlzeCP1Srn4hjVmhN61l",
+    host: 'redis-16496.c278.us-east-1-4.ec2.redns.redis-cloud.com',
+    port: 16496,
+    password: '5SSp6uL3U1I6sTyawOCxg63CxmBWvuJo',
   });
-
-  // Configuración para producción
-  const isProduction = process.env.NODE_ENV === 'production';
-  const origin = isProduction
-    ? "https://catunta.netlify.app"
-    : "http://localhost:3000";
-
-  // Configuración CORS más robusta
-  app.use(cors({
-    origin: origin,
-    credentials: true,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  }));
 
   app.set("trust proxy", 1);
-  
-  // Middleware para logging de cookies (para debug) - CORREGIDO
-  app.use((req, _, next) => { // Usa _ en lugar de res ya que no se usa
-    console.log('Cookies recibidas:', req.headers.cookie);
-    console.log('Origin:', req.headers.origin);
-    console.log('User-Agent:', req.headers['user-agent']);
-    next();
-  });
+  app.set("Access-Control-Allow-Credentials", true);
 
   app.use(
     session({
@@ -61,14 +39,13 @@ const main = async () => {
         disableTouch: true,
       }),
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 años
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
         httpOnly: true,
-        sameSite: isProduction ? "none" : "lax",
-        secure: isProduction,
-        domain: isProduction ? ".catunta.netlify.app" : undefined,
+        sameSite: "lax",
+        secure: false,
       },
       saveUninitialized: false,
-      secret: process.env.SESSION_SECRET || "pass",
+      secret: "pass",
       resave: false,
     })
   );
@@ -84,17 +61,10 @@ const main = async () => {
       ],
       validate: false,
     }),
-    context: ({ req, res }) => {
-      // Log para debug
-      console.log('Session ID:', req.sessionID);
-      console.log('User in session:', (req as any).session?.userId);
-      
-      return {
-        req,
-        res,
-        redis,
-      };
-    },
+    context: ({ req, res }) => ({
+      req,
+      res,
+    }),
   });
 
   await apolloServer.start();
@@ -103,18 +73,15 @@ const main = async () => {
     app: app as any,
     cors: {
       credentials: true,
-      origin: origin,
+      origin: "https://catunta.netlify.app",
     },
   });
 
   reniecRoute(app);
   sunatRoute(app);
 
-  const PORT = process.env.PORT || 8080;
-
-  app.listen(PORT, () => {
-    console.log(`Server running in ${isProduction ? 'production' : 'development'} mode`);
-    console.log(`GraphQL endpoint: http://localhost:${PORT}${apolloServer.graphqlPath}`);
+  app.listen(8080, () => {
+    console.log("On Servening... http://localhost:8080/graphql");
   });
 };
 
