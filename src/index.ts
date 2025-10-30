@@ -73,7 +73,7 @@ const main = async () => {
     app: app as any,
     cors: {
       credentials: true,
-      origin: "https://filthy-cemetery-r4p9wppv6xpfxq9v-3000.app.github.dev",
+      origin: "https://catunta.netlify.app",
     },
   });
 
