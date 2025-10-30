@@ -27,7 +27,13 @@ const main = async () => {
     password: "uEZIYvAuLLOdZlzeCP1Srn4hjVmhN61l",
   });
 
-  app.set("trust proxy", 1);
+  // Configuración para producción
+  const isProduction = process.env.NODE_ENV === 'production';
+  const origin = isProduction 
+    ? "https://catunta.netlify.app" 
+    : "http://localhost:3000"; // o tu frontend local
+
+  app.set("trust proxy", 1); // Importante para HTTPS en producción
   app.set("Access-Control-Allow-Credentials", true);
 
   app.use(
@@ -39,19 +45,19 @@ const main = async () => {
         disableTouch: true,
       }),
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 años
         httpOnly: true,
-        sameSite: "lax",
-        secure: false,
+        sameSite: isProduction ? "none" : "lax", // "none" para cross-site en producción
+        secure: isProduction, // true en producción, false en desarrollo
+        domain: isProduction ? ".catunta.netlify.app" : undefined, // Opcional: para subdominios
       },
       saveUninitialized: false,
-      secret: "pass",
+      secret: process.env.SESSION_SECRET || "pass", // Usa variable de entorno en producción
       resave: false,
     })
   );
 
   const apolloServer = new ApolloServer({
-    cache: "bounded",
     schema: await buildSchema({
       resolvers: [
         UserResolver,
@@ -66,6 +72,7 @@ const main = async () => {
       req,
       res,
     }),
+    cache: "bounded", // Para evitar el warning de seguridad
   });
 
   await apolloServer.start();
@@ -74,15 +81,18 @@ const main = async () => {
     app: app as any,
     cors: {
       credentials: true,
-      origin: "https://catunta.netlify.app",
+      origin: origin, // Usa la variable dinámica
     },
   });
 
   reniecRoute(app);
   sunatRoute(app);
 
-  app.listen(8080, () => {
-    console.log("On Servening... http://localhost:8080/graphql");
+  const PORT = process.env.PORT || 8080;
+  
+  app.listen(PORT, () => {
+    console.log(`Server running in ${isProduction ? 'production' : 'development'} mode`);
+    console.log(`GraphQL endpoint: http://localhost:${PORT}${apolloServer.graphqlPath}`);
   });
 };
 
