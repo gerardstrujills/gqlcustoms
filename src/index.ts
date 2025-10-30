@@ -44,10 +44,11 @@ const main = async () => {
 
   app.set("trust proxy", 1);
   
-  // Middleware para logging de cookies (para debug)
-  app.use((req, res, next) => {
+  // Middleware para logging de cookies (para debug) - CORREGIDO
+  app.use((req, _, next) => { // Usa _ en lugar de res ya que no se usa
     console.log('Cookies recibidas:', req.headers.cookie);
     console.log('Origin:', req.headers.origin);
+    console.log('User-Agent:', req.headers['user-agent']);
     next();
   });
 
