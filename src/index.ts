@@ -29,8 +29,8 @@ const main = async () => {
 
   // Configuración para producción
   const isProduction = process.env.NODE_ENV === 'production';
-  const origin = isProduction 
-    ? "https://catunta.netlify.app" 
+  const origin = isProduction
+    ? "https://catunta.netlify.app"
     : "http://localhost:3000"; // o tu frontend local
 
   app.set("trust proxy", 1); // Importante para HTTPS en producción
@@ -72,7 +72,9 @@ const main = async () => {
       req,
       res,
     }),
-    cache: "bounded", // Para evitar el warning de seguridad
+    cache: new BaseRedisCache({ // <--- REEMPLAZA ESTO
+      client: redis,
+    }),
   });
 
   await apolloServer.start();
@@ -89,7 +91,7 @@ const main = async () => {
   sunatRoute(app);
 
   const PORT = process.env.PORT || 8080;
-  
+
   app.listen(PORT, () => {
     console.log(`Server running in ${isProduction ? 'production' : 'development'} mode`);
     console.log(`GraphQL endpoint: http://localhost:${PORT}${apolloServer.graphqlPath}`);
