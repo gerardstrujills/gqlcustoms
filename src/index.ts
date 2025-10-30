@@ -51,7 +51,6 @@ const main = async () => {
   );
 
   const apolloServer = new ApolloServer({
-    cache: new InMemoryLRUCache({ maxSize: Math.pow(2, 20) }),
     schema: await buildSchema({
       resolvers: [
         UserResolver,
