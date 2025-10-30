@@ -22,9 +22,9 @@ const main = async () => {
   const RedisStore = require("connect-redis").default;
 
   const redis = new Redis({
-    host: "redis-13003.c17.us-east-1-4.ec2.redns.redis-cloud.com",
-    port: 13003,
-    password: "BtBwSQVDIpubxLbSYBO4zfDKqmSZaAa5",
+    host: 'redis-18468.c89.us-east-1-3.ec2.redns.redis-cloud.com',
+    port: 18468,
+    password: "uEZIYvAuLLOdZlzeCP1Srn4hjVmhN61l",
   });
 
   app.set("trust proxy", 1);
@@ -73,7 +73,7 @@ const main = async () => {
     app: app as any,
     cors: {
       credentials: true,
-      origin: "http://localhost:3000",
+      origin: "https://filthy-cemetery-r4p9wppv6xpfxq9v-3000.app.github.dev",
     },
   });
 
