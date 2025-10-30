@@ -13,6 +13,7 @@ import { ProductResolver } from "./resolvers/product.resolver";
 import { EntryResolver } from "./resolvers/entry.resolver";
 import { SupplierResolver } from "./resolvers/supplier.resolver";
 import { WithdrawalResolver } from "./resolvers/withdrawal";
+import cors from "cors";
 
 const main = async () => {
   await AppDataSource.initialize();
@@ -27,9 +28,21 @@ const main = async () => {
     password: '5SSp6uL3U1I6sTyawOCxg63CxmBWvuJo',
   });
 
-  app.set("trust proxy", 1);
-  app.set("Access-Control-Allow-Credentials", true);
+  // Verificar conexión a Redis
+  redis.on('connect', () => console.log('✅ Conectado a Redis'));
+  redis.on('error', (err) => console.log('❌ Error Redis:', err));
 
+  app.set("trust proxy", 1);
+  
+  // Middleware CORS explícito
+  app.use(cors({
+    origin: "https://catunta.netlify.app",
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  }));
+
+  // Configuración de sesión mejorada
   app.use(
     session({
       name: COOKIE_NAME,
@@ -39,14 +52,14 @@ const main = async () => {
         disableTouch: true,
       }),
       cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 años
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        secure: process.env.NODE_ENV === "production",
-        domain: process.env.NODE_ENV === "production" ? ".catunta.netlify.app" : undefined,
+        sameSite: "none", // ← SIEMPRE "none" en producción
+        secure: true, // ← SIEMPRE true en producción
+        // domain: "catunta.netlify.app" // ← Prueba sin esto primero
       },
       saveUninitialized: false,
-      secret: "pass", // ← ¡MEJORA ESTO!
+      secret: "pass", 
       resave: false,
     })
   );
@@ -81,8 +94,12 @@ const main = async () => {
   reniecRoute(app);
   sunatRoute(app);
 
-  app.listen(8080, () => {
-    console.log("On Servening... http://localhost:8080/graphql");
+  // ✅ PUERTO CORRECTO PARA RAILWAY
+  const PORT = process.env.PORT || 8080;
+  
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📱 GraphQL: http://localhost:${PORT}/graphql`);
   });
 };
 
