@@ -42,8 +42,8 @@ const main = async () => {
     allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   }));
 
-  // Middleware para debug
-  app.use((req, res, next) => {
+  // Middleware para debug - CORREGIDO (sin 'res' no usado)
+  app.use((req, _, next) => {
     console.log('🔍 Headers recibidos:', req.headers.origin);
     console.log('🍪 Cookies recibidas:', req.headers.cookie);
     console.log('📝 Método:', req.method);
@@ -102,10 +102,10 @@ const main = async () => {
   reniecRoute(app);
   sunatRoute(app);
 
-  // ✅ PUERTO CORRECTO - Railway asigna puerto dinámico
-  const PORT = process.env.PORT || 8080;
+  // ✅ PUERTO CORRECTO - Convertir a número
+  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 8080;
   
-  app.listen(PORT, "0.0.0.0", () => { // ← Añade "0.0.0.0"
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📱 GraphQL: http://0.0.0.0:${PORT}/graphql`);
   });
