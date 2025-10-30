@@ -13,6 +13,7 @@ import { ProductResolver } from "./resolvers/product.resolver";
 import { EntryResolver } from "./resolvers/entry.resolver";
 import { SupplierResolver } from "./resolvers/supplier.resolver";
 import { WithdrawalResolver } from "./resolvers/withdrawal";
+import cors from "cors";
 
 const main = async () => {
   await AppDataSource.initialize();
@@ -31,10 +32,24 @@ const main = async () => {
   const isProduction = process.env.NODE_ENV === 'production';
   const origin = isProduction
     ? "https://catunta.netlify.app"
-    : "http://localhost:3000"; // o tu frontend local
+    : "http://localhost:3000";
 
-  app.set("trust proxy", 1); // Importante para HTTPS en producción
-  app.set("Access-Control-Allow-Credentials", true);
+  // Configuración CORS más robusta
+  app.use(cors({
+    origin: origin,
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  }));
+
+  app.set("trust proxy", 1);
+  
+  // Middleware para logging de cookies (para debug)
+  app.use((req, res, next) => {
+    console.log('Cookies recibidas:', req.headers.cookie);
+    console.log('Origin:', req.headers.origin);
+    next();
+  });
 
   app.use(
     session({
@@ -47,12 +62,12 @@ const main = async () => {
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, // 10 años
         httpOnly: true,
-        sameSite: isProduction ? "none" : "lax", // "none" para cross-site en producción
-        secure: isProduction, // true en producción, false en desarrollo
-        domain: isProduction ? ".catunta.netlify.app" : undefined, // Opcional: para subdominios
+        sameSite: isProduction ? "none" : "lax",
+        secure: isProduction,
+        domain: isProduction ? ".catunta.netlify.app" : undefined,
       },
       saveUninitialized: false,
-      secret: process.env.SESSION_SECRET || "pass", // Usa variable de entorno en producción
+      secret: process.env.SESSION_SECRET || "pass",
       resave: false,
     })
   );
@@ -68,11 +83,17 @@ const main = async () => {
       ],
       validate: false,
     }),
-    context: ({ req, res }) => ({
-      req,
-      res,
-      redis,
-    }),
+    context: ({ req, res }) => {
+      // Log para debug
+      console.log('Session ID:', req.sessionID);
+      console.log('User in session:', (req as any).session?.userId);
+      
+      return {
+        req,
+        res,
+        redis,
+      };
+    },
   });
 
   await apolloServer.start();
@@ -81,7 +102,7 @@ const main = async () => {
     app: app as any,
     cors: {
       credentials: true,
-      origin: origin, // Usa la variable dinámica
+      origin: origin,
     },
   });
 
