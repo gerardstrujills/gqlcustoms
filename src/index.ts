@@ -12,6 +12,7 @@ import Redis from "ioredis";
 import { ProductResolver } from "./resolvers/product.resolver";
 import { EntryResolver } from "./resolvers/entry.resolver";
 import { SupplierResolver } from "./resolvers/supplier.resolver";
+import { BaseRedisCache } from "apollo-server-cache-redis";
 import { WithdrawalResolver } from "./resolvers/withdrawal";
 
 const main = async () => {
